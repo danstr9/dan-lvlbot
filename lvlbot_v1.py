@@ -135,7 +135,7 @@ else: # FTX CONNECTION
     "apiKey": config.FTX_DCA_API_KEY,
     "secret": config.FTX_DCA_API_SECRET,
     'enableRateLimit': True,
-    'headers': {'FTX-SUBACCOUNT': 'dca_2'}
+    'headers': {'FTX-SUBACCOUNT': config.FTX_SUBACCOUNT}
     })
     client = FtxClient(api_key=config.FTX_DCA_API_KEY, api_secret=config.FTX_DCA_API_SECRET)
     SYMBOL = SHITCOIN.upper()+'-PERP'
