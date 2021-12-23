@@ -3,7 +3,6 @@
 # pip install websocket
 # pip install pandas
 # pip install numpy
-# pip install config 
 # pip install ccxt
 # pip install schedule
 # pip install animation
@@ -14,6 +13,7 @@ from datetime import *
 import pandas as pd
 import numpy as np
 import config
+import vars
 import ccxt
 import time
 from binance_data import DataClient
@@ -28,13 +28,13 @@ import hmac
 # ------------------------------------------------------
 
 ######################## GLOBAL VARIABLES #########################
-BINANCE = True # Variable to indicate which exchange to use: True for BINANCE, False for FTX
-SHITCOIN = 'dydx'
-MULTI_TF = True
-TF_LIST = ['12h','4h','1h','15m','5m','1m']
-TF = '5m'
-DAYS_BACK = 10 # Number of days to look back in time for initial candles data
-TRADE_ON = True
+BINANCE = vars.BINANCE # Variable to indicate which exchange to use: True for BINANCE, False for FTX
+SHITCOIN = vars.SHITCOIN
+MULTI_TF = vars.MULTI_TF
+TF_LIST = vars.TF_LIST
+TF = vars.TF
+DAYS_BACK = vars.DAYS_BACK # Number of days to look back in time for initial candles data
+TRADE_ON = vars.TRADE_ON
 ###################################################################
 
 LEVEL_COLUMNS = ['side','price','hit','time']
@@ -147,18 +147,18 @@ if not MULTI_TF:
     print("Days back: {} \nNum. Candles: {}".format(DAYS_BACK, NUM_CANDLES))
 
 # Balance variables
-MAX_BAL_PER_COIN = 10 # Maximum percentage of balance to use per asset/coin
+MAX_BAL_PER_COIN = vars.MAX_BAL_PER_COIN # Maximum percentage of balance to use per asset/coin
 exchange.load_markets(SYMBOL)
 MIN_COST = exchange.load_markets(C_SYMBOL)[C_SYMBOL]['limits']['cost']['min']
 MIN_AMOUNT = exchange.load_markets(C_SYMBOL)[C_SYMBOL]['limits']['amount']['min']
-LVRG = 20
+LVRG = vars.LVRG
 
 
 # Take Profit Grid Options
-TPGRID_MIN_DIST = 0.2 # Percentage to use for the closest order in the TP grid
-TPGRID_MAX_DIST = 0.8  # Percentage to use for the farthest order in the TP grid
-TP_ORDERS = 6 # Number of orders for the TP grid
-ASSYMMETRIC_TP = False # False for equal sized orders, False for descending size TP orders 
+TPGRID_MIN_DIST = vars.TPGRID_MIN_DIST # Percentage to use for the closest order in the TP grid
+TPGRID_MAX_DIST = vars.TPGRID_MAX_DIST  # Percentage to use for the farthest order in the TP grid
+TP_ORDERS = vars.TP_ORDERS # Number of orders for the TP grid
+ASSYMMETRIC_TP = vars.ASSYMMETRIC_TP # False for equal sized orders, False for descending size TP orders 
 
 # FUNCTIONS START HERE
 
@@ -411,7 +411,7 @@ def dca_sell_list(levels):
 
 def new_order(symbol, side, amount, price, params={}):
     try:
-        print("Sending order")
+        print("Sending order of {} at {}".format(amount, price))
         order = exchange.create_limit_order(symbol=symbol, side=side, amount=amount, price=price, params=params)
         # print(order)
         return order
@@ -661,7 +661,7 @@ def scheduler():
                 check_tp_routine()
             except Exception as e:
                 print(e)
-            
+
         if get_current_positions().empty:
             if time.localtime().tm_sec % 5 == 0 and time.localtime().tm_min % 5 == 0:
                 if MULTI_TF:
@@ -692,7 +692,7 @@ def check_tp_routine():
                 round(sz*LVRG,3), round(pos.iloc[0]['unrealizedPnl'],4), pos.iloc[0]['liquidationPrice'])
                 )
     else:
-        print("[{}] - No position.".format(datetime.now().isoformat().replace('T',' ')))
+        print("[{}] - No position. DCA grid size: {}".format(datetime.now().isoformat().replace('T',' '), round(current_dca_grid_size(),4)))
     return pos
        
 def remove_orders(orders):
