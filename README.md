@@ -1,4 +1,6 @@
 # dan-lvlbot
+## NOTE: THIS CODE IS STILL UNDER DEVELOPMENT.
+
 A bot for trading binance futures and FTX based on price action levels.
 
 The bot supports any timeframes supported by the exchanges.
