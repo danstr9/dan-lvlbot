@@ -122,6 +122,7 @@ class FtxClient:
 #### EXCHANGE SPECIFICS
 if BINANCE: # BINANCE CONNECTION TO USD-M FUTURES
     exchange = ccxt.binanceusdm({
+        'enableRateLimit': True,
         "apiKey": config.CCXT_API_KEY,
         "secret": config.CCXT_API_SECRET
     })
@@ -159,6 +160,7 @@ TPGRID_MIN_DIST = vars.TPGRID_MIN_DIST # Percentage to use for the closest order
 TPGRID_MAX_DIST = vars.TPGRID_MAX_DIST  # Percentage to use for the farthest order in the TP grid
 TP_ORDERS = vars.TP_ORDERS # Number of orders for the TP grid
 ASSYMMETRIC_TP = vars.ASSYMMETRIC_TP # False for equal sized orders, False for descending size TP orders 
+MIN_LEVEL_DISTANCE = vars.MIN_LEVEL_DISTANCE
 
 # FUNCTIONS START HERE
 
@@ -419,6 +421,65 @@ def new_order(symbol, side, amount, price, params={}):
         print(e)
         return False
 
+def buy_levels_filter(levels):
+    '''
+    Function that filters out levels too close to each other and returns the filtered dataframe
+    '''
+    levels.reset_index(drop=True, inplace=True)
+    levels['price']=levels['price'].astype(float)
+    print(" - - - Before filter: {}".format(levels['price']))
+    ld = []
+    for i in levels.index:
+        if i>0:
+            if levels.iloc[i]['price'] > (levels.iloc[i-1]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
+                ld.append(i)  # Add the row to the list for removal
+    # jump = False
+    # for i in levels.index:
+    #     if i>0:
+    #         if not jump:
+    #             if levels.iloc[i]['price'] > (levels.iloc[i-1]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
+    #                 ld.append(i)
+    #                 jump = True
+    #             else:
+    #                 jump = False
+    #         else:
+    #             if i > 2:
+    #                 if levels.iloc[i]['price'] > (levels.iloc[i-2]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
+    #                     ld.append(i)
+    #                     jump = True
+    #                 else:
+    #                     jump = False
+
+    levels.drop(ld, inplace=True)
+    print(" - - - After filter: {}".format(levels['price']))
+    return levels
+
+def sell_levels_filter(levels):
+    '''
+    Function that filters out levels too close to each other and returns the filtered dataframe
+    '''
+    levels.reset_index(drop=True, inplace=True)
+    levels['price']=levels['price'].astype(float)
+    ld = []
+    jump = False
+    for i in levels.index:
+        if i>0:
+            if not jump:
+                if levels.iloc[i]['price'] < (levels.iloc[i-1]['price'] * (1 + MIN_LEVEL_DISTANCE/100)):
+                    ld.append(i)
+                    jump = True
+                else:
+                    jump = False
+            else:
+                if i > 2:
+                    if levels.iloc[i]['price'] < (levels.iloc[i-2]['price'] * (1 + MIN_LEVEL_DISTANCE/100)):
+                        ld.append(i)
+                        jump = True
+                    else:
+                        jump = False
+    levels.drop(ld, inplace=True)
+    return levels
+
 def get_closest_unhit_lvls(tflist=TF_LIST):
     
     global UNHIT_LEVELS
@@ -438,12 +499,15 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
             daysago = 150
         elif tf == '12h':
             daysago = 365
+        elif tf == '1d':
+            daysago = 720
         tfn, num = get_ftx_tf_num_calc(tf, daysago)
         print("tf: {}, tfn: {}, num: {}".format(tf, tfn, num))
  
         candles = get_data(client, SYMBOL,tf, daysago=daysago, num=num, tfnum=tfn)
         levels = get_levels(candles, num)
         unhit_levels = levels[levels['hit'] == False]
+        unhit_levels = unhit_levels.drop(['time'], axis=1)
 
         # print(levels)
         print("-"*80)
@@ -466,10 +530,11 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
         # print("candles tail: \n{}\ncandles head: {}".format(candles.tail(1), candles.head(1)))
         buy_lvdf = buy_lvdf.drop_duplicates()
         sell_lvdf = sell_lvdf.drop_duplicates()
-    # UNHIT_LEVELS.append(buy_lvdf.append(sell_lvdf))
-    # UNHIT_LEVELS = UNHIT_LEVELS.drop_duplicates()
+
+    buy_lvdf = buy_levels_filter(buy_lvdf)
+    sell_lvdf = sell_levels_filter(sell_lvdf)
     if TRADE_ON:
-        print("Final Results: \n *** BUY LEVELS *** \n{} \n *** SELL LEVELS *** \n{}".format(buy_lvdf, sell_lvdf))
+        print("Final Results: \n *** BUY LEVELS *** \n{}".format(buy_lvdf))
         run_buy_dca_grid(candles, buy_lvdf.append(sell_lvdf))
     else:
         print("Final Results: \n *** BUY LEVELS *** \n{} \n *** SELL LEVELS *** \n{}".format(buy_lvdf, sell_lvdf))
@@ -620,10 +685,11 @@ def get_current_positions(symbol=SYMBOL):
         symbol = C_SYMBOL
         try:
             positions = pd.DataFrame(exchange.fetch_positions(symbols=symbol))
-            time.sleep(1)
+            # time.sleep(1)
         except Exception as e:
             print(e)
             print("Failed to get current positions.")
+            return pd.DataFrame()
         if positions.bool:
             if not positions.empty:
                 positions = positions[positions['entryPrice'].notnull()]
