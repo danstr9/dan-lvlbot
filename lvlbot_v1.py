@@ -35,6 +35,7 @@ TF_LIST = vars.TF_LIST
 TF = vars.TF
 DAYS_BACK = vars.DAYS_BACK # Number of days to look back in time for initial candles data
 TRADE_ON = vars.TRADE_ON
+LEVELS_PER_TF = vars.LEVELS_PER_TF
 ###################################################################
 
 LEVEL_COLUMNS = ['side','price','hit','time']
@@ -516,13 +517,13 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
         # print("buy_levels: \n{}".format(buy_levels))
         # print("sell_levels: \n{}".format(sell_levels))   
         if not buy_levels.empty:
-            print("---- Closest {} BUY: {}".format(tf, list(buy_levels.iloc[0:2]['price'])))
-            buy_lvdf = buy_lvdf.append(buy_levels.iloc[0:2], ignore_index=True)
+            print("---- Closest {} BUY: {}".format(tf, list(buy_levels.iloc[0:LEVELS_PER_TF]['price'])))
+            buy_lvdf = buy_lvdf.append(buy_levels.iloc[0:LEVELS_PER_TF], ignore_index=True)
             buy_lvdf['price'] = buy_lvdf['price'].astype(float)
             buy_lvdf.sort_values(by='price', ascending=False, inplace=True)
         if not sell_levels.empty:
-            print("---- Closest {} SELL: {}".format(tf, list(sell_levels.iloc[0:2]['price'])))
-            sell_lvdf = sell_lvdf.append(sell_levels.iloc[0:2], ignore_index=True)
+            print("---- Closest {} SELL: {}".format(tf, list(sell_levels.iloc[0:LEVELS_PER_TF]['price'])))
+            sell_lvdf = sell_lvdf.append(sell_levels.iloc[0:LEVELS_PER_TF], ignore_index=True)
             sell_lvdf['price'] = sell_lvdf['price'].astype(float)
             sell_lvdf.sort_values(by='price', ascending=True)
         print("-"*80)

@@ -4,6 +4,7 @@ SHITCOIN = 'xrp'
 MULTI_TF = True
 TF_LIST = ['12h','4h','1h','15m','5m','1m']
 TF = '5m'
+LEVELS_PER_TF = 2 # Number of levels per Time Frame to include in the list of DCAs
 DAYS_BACK = 10 # Number of days to look back in time for initial candles data
 TRADE_ON = True
 ###################################################################
