@@ -54,7 +54,6 @@ elif 'h' in TF:
 clock = ['-','\\','|','/']
 wait_animation = animation.Wait(clock, speed=8)
 
-
 # Special class with FTX functions to get the candle data.
 class FtxClient:
     _ENDPOINT = 'https://ftx.com/api/'
@@ -133,15 +132,15 @@ if BINANCE: # BINANCE CONNECTION TO USD-M FUTURES
     C_SYMBOL = SHITCOIN.upper()+'/USDT'
     print("Exchange: BINANCE - {}".format(TF))
 else: # FTX CONNECTION
-    exchange = ccxt.ftx({
-    "apiKey": config.FTX_DCA_API_KEY,
-    "secret": config.FTX_DCA_API_SECRET,
-    'enableRateLimit': True,
-    'headers': {'FTX-SUBACCOUNT': config.FTX_SUBACCOUNT}
-    })
-    client = FtxClient(api_key=config.FTX_DCA_API_KEY, api_secret=config.FTX_DCA_API_SECRET)
     SYMBOL = SHITCOIN.upper()+'-PERP'
     C_SYMBOL = SYMBOL
+    exchange = ccxt.ftx({
+    "apiKey": config.FTX_SAV_API_KEY,
+    "secret": config.FTX_SAV_API_SECRET,
+    'enableRateLimit': True,
+    'headers': {'FTX-SUBACCOUNT': config.FTX_SAV_SUBACCOUNT}
+    })
+    client = FtxClient(api_key=config.FTX_SAV_API_KEY, api_secret=config.FTX_SAV_API_SECRET)
     print("Exchange: FTX - {}".format(TF))
     
 print("SYMBOL: {}".format(SYMBOL))    
@@ -151,6 +150,7 @@ if not MULTI_TF:
 # Balance variables
 MAX_BAL_PER_COIN = vars.MAX_BAL_PER_COIN # Maximum percentage of balance to use per asset/coin
 exchange.load_markets(SYMBOL)
+
 MIN_COST = exchange.load_markets(C_SYMBOL)[C_SYMBOL]['limits']['cost']['min']
 MIN_AMOUNT = exchange.load_markets(C_SYMBOL)[C_SYMBOL]['limits']['amount']['min']
 LVRG = vars.LVRG
@@ -160,6 +160,7 @@ LVRG = vars.LVRG
 TPGRID_MIN_DIST = vars.TPGRID_MIN_DIST # Percentage to use for the closest order in the TP grid
 TPGRID_MAX_DIST = vars.TPGRID_MAX_DIST  # Percentage to use for the farthest order in the TP grid
 TP_ORDERS = vars.TP_ORDERS # Number of orders for the TP grid
+DCA_FACTOR_MULT = vars.DCA_FACTOR_MULT
 ASSYMMETRIC_TP = vars.ASSYMMETRIC_TP # False for equal sized orders, False for descending size TP orders 
 MIN_LEVEL_DISTANCE = vars.MIN_LEVEL_DISTANCE
 
@@ -556,17 +557,19 @@ def max_dca_grid_size():
     return float(exchange.fetchBalance()['USDT']['total']) * MAX_BAL_PER_COIN / 100
 
 def calculate_min_amount():
-    global MIN_AMOUNT
+    global MIN_AMOUNT, SYMBOL
     min_entry = MIN_AMOUNT
     if BINANCE:
         SYMBOL=C_SYMBOL
+    else:
+        return float(exchange.amount_to_precision(SYMBOL, MIN_AMOUNT))
     current_price = float(exchange.fetch_ticker(SYMBOL)['close'])
     if min_entry * current_price >= MIN_COST:
-        return float(exchange.price_to_precision(SYMBOL, MIN_AMOUNT))
+        return float(exchange.amount_to_precision(SYMBOL, MIN_AMOUNT))
     else:
         while min_entry * current_price < MIN_COST:
             min_entry += MIN_AMOUNT
-        return float(exchange.price_to_precision(SYMBOL, min_entry))
+        return float(exchange.amount_to_precision(SYMBOL, min_entry))
 
 def find_max_possible_entry(bal, factor, price_list):
     '''
@@ -606,10 +609,10 @@ def entry_size(levels, long=True):
         def_list = list(sell_levels['price'].astype(float))
 
     while len(def_list) > 0:
-        min_entry_total_size = calc_max_position(MIN_AMOUNT, 1.7, def_list)
+        min_entry_total_size = calc_max_position(MIN_AMOUNT, DCA_FACTOR_MULT, def_list)
         
         if min_entry_total_size < max_bpc: # Check if we cover the whole available balance with the minimum entry size
-            entry = find_max_possible_entry(max_bpc, 1.7, def_list)
+            entry = find_max_possible_entry(max_bpc, DCA_FACTOR_MULT, def_list)
             return entry, def_list
         elif min_entry_total_size == max_bpc:
             return min_entry_total_size, def_list
@@ -682,6 +685,7 @@ def get_current_positions(symbol=SYMBOL):
     param 'symbol': the symbol
     returns a DataFrame with the current positions and the main fields (simplified version)
     '''
+    global SYMBOL
     if BINANCE:
         symbol = C_SYMBOL
         try:
@@ -783,6 +787,7 @@ def remove_orders(orders):
     return True
 
 def position_covered(pos=get_current_positions()):
+    global SYMBOL
     tpord = get_tp_orders()
     pos = get_current_positions()
     if BINANCE:
@@ -797,6 +802,7 @@ def position_covered(pos=get_current_positions()):
         return False
 
 def get_orders():
+    global SYMBOL
     if BINANCE:
         SYMBOL=C_SYMBOL
     oo = pd.DataFrame(exchange.fetch_open_orders(symbol=SYMBOL))
@@ -836,7 +842,7 @@ def current_dca_grid_size(): # returns the balance used by DCAs without consider
     return total
 
 def run_buy_dca_grid(candles, unhit_levels=pd.DataFrame):
-    global LEVELS, UNHIT_LEVELS
+    global LEVELS, UNHIT_LEVELS, SYMBOL
     if unhit_levels.empty:
         LEVELS = get_levels(candles, n=NUM_CANDLES)
 
@@ -862,6 +868,7 @@ def run_buy_dca_grid(candles, unhit_levels=pd.DataFrame):
         print("No buy levels found. Nothing to do.")
 
 def add_tp_grid(pos = get_current_positions(SYMBOL)):
+    global SYMBOL
     if not get_tp_orders().empty:
         if not position_covered(pos):
             remove_orders(get_tp_orders())
