@@ -707,10 +707,11 @@ def get_current_positions(symbol=SYMBOL):
         except Exception as e:
             print(e)
             print("Failed to get current positions.")
-        if positions.bool:
-            if not positions.empty:
-                positions = positions[(positions['side']!= 'None') & (positions['symbol'] == symbol)]
-                positions['entryPrice'] = positions['info'].apply(lambda x : x['recentAverageOpenPrice']).astype(float)
+
+        if not positions.empty:
+            positions = positions[(positions['side']!= 'None') & (positions['symbol'] == symbol)]
+            positions['entryPrice'] = positions['info'].apply(lambda x : x['recentAverageOpenPrice']).astype(float)
+            if positions.iloc[0]['contracts'] != 0:
                 return pd.DataFrame(positions[['symbol', 'entryPrice', 'contracts', 'side', 'liquidationPrice', 'unrealizedPnl']])
     return pd.DataFrame()
 
