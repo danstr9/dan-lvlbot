@@ -222,6 +222,8 @@ def get_binance_candles(client, market, timeframe=TF, daysago=30, candlesago=0, 
     '''
 
     # data_file = str('~/Documents/MegaCloud/Python/TRD/lvlbot/historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
+    global SYMBOL
+    SYMBOL = SHITCOIN.upper()+'-PERP'
     data_file = str('./historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
     today = datetime.utcnow().strftime('%m/%d/%Y')
 
@@ -720,13 +722,13 @@ def get_position_notional():
 
 def scheduler():
     if get_current_positions().empty and MULTI_TF:
-        if not get_dca_orders().empty:
-            if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
-                get_closest_unhit_lvls()
-            else:
-                get_closest_unhit_lvls(['1m','5m','15m'])
-        else:
-            get_closest_unhit_lvls()
+        # if not get_dca_orders().empty:
+        #     if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
+        #         get_closest_unhit_lvls()
+        #     else:
+        #         get_closest_unhit_lvls(['1m','5m','15m'])
+        # else:
+        get_closest_unhit_lvls()
     while True:
         if time.localtime().tm_sec % 5 == 0: # Get things done every 5 seconds
             try:
@@ -735,15 +737,14 @@ def scheduler():
                 print(e)
 
         if get_current_positions().empty:
-            if time.localtime().tm_sec % 5 == 0 and time.localtime().tm_min % 5 == 0:
+            if time.localtime().tm_min % 5 == 0:
                 if MULTI_TF:
-                    if not get_dca_orders().empty:
-                        if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
-                            get_closest_unhit_lvls()
-                        else:
-                            get_closest_unhit_lvls(['1m','5m','15m'])
-                    else:
-                        get_closest_unhit_lvls()
+                    # if not get_dca_orders().empty and current_dca_grid_size() <= (max_dca_grid_size() * 0.95):
+                    get_closest_unhit_lvls()
+                    #     else:
+                    #         get_closest_unhit_lvls(['1m','5m','15m'])
+                    # else:
+                        # get_closest_unhit_lvls()
                 else:
                     run_buy_dca_grid(get_data())
         time.sleep(1)
