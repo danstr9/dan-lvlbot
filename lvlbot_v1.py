@@ -491,6 +491,8 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
 
         if tf == '1m':
             daysago = 1
+        elif tf == '3m':
+            daysago = 2
         elif tf == '5m':
             daysago = 5
         elif tf == '15m':
