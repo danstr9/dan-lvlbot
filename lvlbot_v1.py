@@ -222,9 +222,8 @@ def get_binance_candles(client, market, timeframe=TF, daysago=30, candlesago=0, 
     '''
 
     # data_file = str('~/Documents/MegaCloud/Python/TRD/lvlbot/historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
-    global SYMBOL
-    SYMBOL = SHITCOIN.upper()+'-PERP'
-    data_file = str('./historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
+    symbol = SHITCOIN.upper()+'USDT'
+    data_file = str('./historical_price_data/' + timeframe + '_data/' + symbol + '/' + symbol + '.csv')
     today = datetime.utcnow().strftime('%m/%d/%Y')
 
     if candlesago == 0:
