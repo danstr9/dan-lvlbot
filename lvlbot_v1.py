@@ -222,8 +222,7 @@ def get_binance_candles(client, market, timeframe=TF, daysago=30, candlesago=0, 
     '''
 
     # data_file = str('~/Documents/MegaCloud/Python/TRD/lvlbot/historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
-    symbol = SHITCOIN.upper()+'USDT'
-    data_file = str('./historical_price_data/' + timeframe + '_data/' + symbol + '/' + symbol + '.csv')
+    data_file = str('./historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
     today = datetime.utcnow().strftime('%m/%d/%Y')
 
     if candlesago == 0:
@@ -558,19 +557,19 @@ def max_dca_grid_size():
     return float(exchange.fetchBalance()['USDT']['total']) * MAX_BAL_PER_COIN / 100
 
 def calculate_min_amount():
-    global MIN_AMOUNT, SYMBOL
+    global MIN_AMOUNT
     min_entry = MIN_AMOUNT
-    if BINANCE:
-        SYMBOL=C_SYMBOL
-    else:
-        return float(exchange.amount_to_precision(SYMBOL, MIN_AMOUNT))
-    current_price = float(exchange.fetch_ticker(SYMBOL)['close'])
+    # if BINANCE:
+    #     SYMBOL=C_SYMBOL
+    if not BINANCE:
+        return float(exchange.amount_to_precision(C_SYMBOL, MIN_AMOUNT))
+    current_price = float(exchange.fetch_ticker(C_SYMBOL)['close'])
     if min_entry * current_price >= MIN_COST:
-        return float(exchange.amount_to_precision(SYMBOL, MIN_AMOUNT))
+        return float(exchange.amount_to_precision(C_SYMBOL, MIN_AMOUNT))
     else:
         while min_entry * current_price < MIN_COST:
             min_entry += MIN_AMOUNT
-        return float(exchange.amount_to_precision(SYMBOL, min_entry))
+        return float(exchange.amount_to_precision(C_SYMBOL, min_entry))
 
 def find_max_possible_entry(bal, factor, price_list):
     '''
@@ -686,7 +685,6 @@ def get_current_positions(symbol=SYMBOL):
     param 'symbol': the symbol
     returns a DataFrame with the current positions and the main fields (simplified version)
     '''
-    global SYMBOL
     if BINANCE:
         symbol = C_SYMBOL
         try:
@@ -721,13 +719,13 @@ def get_position_notional():
 
 def scheduler():
     if get_current_positions().empty and MULTI_TF:
-        # if not get_dca_orders().empty:
-        #     if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
-        #         get_closest_unhit_lvls()
-        #     else:
-        #         get_closest_unhit_lvls(['1m','5m','15m'])
-        # else:
-        get_closest_unhit_lvls()
+        if not get_dca_orders().empty:
+            if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
+                get_closest_unhit_lvls()
+            else:
+                get_closest_unhit_lvls(['1m','5m','15m'])
+        else:
+            get_closest_unhit_lvls()
     while True:
         if time.localtime().tm_sec % 5 == 0: # Get things done every 5 seconds
             try:
@@ -736,14 +734,15 @@ def scheduler():
                 print(e)
 
         if get_current_positions().empty:
-            if time.localtime().tm_min % 5 == 0:
+            if time.localtime().tm_sec % 5 == 0 and time.localtime().tm_min % 5 == 0:
                 if MULTI_TF:
-                    # if not get_dca_orders().empty and current_dca_grid_size() <= (max_dca_grid_size() * 0.95):
-                    get_closest_unhit_lvls()
-                    #     else:
-                    #         get_closest_unhit_lvls(['1m','5m','15m'])
-                    # else:
-                        # get_closest_unhit_lvls()
+                    if not get_dca_orders().empty:
+                        if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
+                            get_closest_unhit_lvls()
+                        else:
+                            get_closest_unhit_lvls(['1m','5m','15m'])
+                    else:
+                        get_closest_unhit_lvls()
                 else:
                     run_buy_dca_grid(get_data())
         time.sleep(1)
@@ -788,14 +787,14 @@ def remove_orders(orders):
     return True
 
 def position_covered(pos=get_current_positions()):
-    global SYMBOL
+    # global SYMBOL
     tpord = get_tp_orders()
     pos = get_current_positions()
-    if BINANCE:
-        SYMBOL=C_SYMBOL
+    # if BINANCE:
+    #     SYMBOL=C_SYMBOL
     if not tpord.empty:
         cur_pos = float(pos.iloc[0]['contracts'])
-        cur_tp_size = float(exchange.amount_to_precision(SYMBOL, tpord['remaining'].sum()))
+        cur_tp_size = float(exchange.amount_to_precision(C_SYMBOL, tpord['remaining'].sum()))
         # print("Position: {} - TP orders sum: {}".format(cur_pos, cur_tp_size))
         return (cur_pos == cur_tp_size)
         # return float(exchange.amount_to_precision(SYMBOL, float(pos.iloc[0]['contracts']))) == float(exchange.amount_to_precision(SYMBOL, tpord['remaining'].sum()))
@@ -803,10 +802,10 @@ def position_covered(pos=get_current_positions()):
         return False
 
 def get_orders():
-    global SYMBOL
-    if BINANCE:
-        SYMBOL=C_SYMBOL
-    oo = pd.DataFrame(exchange.fetch_open_orders(symbol=SYMBOL))
+    # global SYMBOL
+    # if BINANCE:
+    #     SYMBOL=C_SYMBOL
+    oo = pd.DataFrame(exchange.fetch_open_orders(symbol=C_SYMBOL))
 
     if not oo.empty:
         if BINANCE:
@@ -854,22 +853,20 @@ def run_buy_dca_grid(candles, unhit_levels=pd.DataFrame):
         entry, dca_list = entry_size(unhit_levels, long=True)
 
     if dca_list:
-
         dca_orders = get_dca_orders()
         if not dca_orders.empty:
             remove_orders(dca_orders)
 
         e_prices = dca_entries(entry, dca_list)
-        if BINANCE:
-            SYMBOL=C_SYMBOL
+        # if BINANCE:
+        #     SYMBOL=C_SYMBOL
         for i in range(len(dca_list)):
-            new_order(SYMBOL, 'buy', e_prices[i], dca_list[i], params={'positionSide': 'LONG'})
-        
+            new_order(C_SYMBOL, 'buy', e_prices[i], dca_list[i], params={'positionSide': 'LONG'})
     else:
         print("No buy levels found. Nothing to do.")
 
 def add_tp_grid(pos = get_current_positions(SYMBOL)):
-    global SYMBOL
+    # global SYMBOL
     if not get_tp_orders().empty:
         if not position_covered(pos):
             remove_orders(get_tp_orders())
@@ -877,11 +874,11 @@ def add_tp_grid(pos = get_current_positions(SYMBOL)):
             print("TP orders match position. Nothing to do.")
             return 0
 
-    if BINANCE:
-        SYMBOL=C_SYMBOL
+    # if BINANCE:
+    #     SYMBOL=C_SYMBOL
     tp_dist = (TPGRID_MAX_DIST - TPGRID_MIN_DIST) / (TP_ORDERS)
     next_tp_pos = float(exchange.price_to_precision(SYMBOL, pos.iloc[0]['entryPrice'] * (1 + TPGRID_MIN_DIST/100)))
-    tp_size = init_size = float(exchange.amount_to_precision(SYMBOL, pos.iloc[0]['contracts'].sum()))
+    tp_size = init_size = float(exchange.amount_to_precision(C_SYMBOL, pos.iloc[0]['contracts'].sum()))
     sum_tps = 0
     tp_orders = []
     print("init size: {}; tp_size: {}, tp_dist: {}".format(next_tp_pos, tp_size, tp_dist))
@@ -889,11 +886,11 @@ def add_tp_grid(pos = get_current_positions(SYMBOL)):
     for n in range(TP_ORDERS):
         if n < (TP_ORDERS-1):
             if ASSYMMETRIC_TP:        
-                tp_size = float(exchange.amount_to_precision(SYMBOL, tp_size/2))   
+                tp_size = float(exchange.amount_to_precision(C_SYMBOL, tp_size/2))   
             else:
-                tp_size = float(exchange.amount_to_precision(SYMBOL, init_size / TP_ORDERS))
+                tp_size = float(exchange.amount_to_precision(C_SYMBOL, init_size / TP_ORDERS))
         else:
-            tp_size = float(exchange.amount_to_precision(SYMBOL, init_size )) # - sum_tps))
+            tp_size = float(exchange.amount_to_precision(C_SYMBOL, init_size )) # - sum_tps))
         sum_tps += tp_size
 
         if BINANCE:
@@ -902,8 +899,8 @@ def add_tp_grid(pos = get_current_positions(SYMBOL)):
             params = {'positionSide': pos.iloc[0]['side'].upper(), 'reduceOnly':True}
 
         if n!=0:
-            next_tp_pos = float(exchange.price_to_precision(SYMBOL, (next_tp_pos * (1 + tp_dist/100))))
-        o = new_order(SYMBOL, 'sell', tp_size, next_tp_pos, params=params)
+            next_tp_pos = float(exchange.price_to_precision(C_SYMBOL, (next_tp_pos * (1 + tp_dist/100))))
+        o = new_order(C_SYMBOL, 'sell', tp_size, next_tp_pos, params=params)
         if o:
             tp_orders.append(o)
         
