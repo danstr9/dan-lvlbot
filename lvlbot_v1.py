@@ -221,6 +221,7 @@ def get_binance_candles(client, market, timeframe=TF, daysago=30, candlesago=0, 
     returns: a dataframe with the candle data
     '''
 
+    # FOR DEBUGGING PURPOSES UNCOMMENT THE FOLLOWING LINE:
     # data_file = str('~/Documents/MegaCloud/Python/TRD/lvlbot/historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
     data_file = str('./historical_price_data/' + timeframe + '_data/' + SYMBOL + '/' + SYMBOL + '.csv')
     today = datetime.utcnow().strftime('%m/%d/%Y')
@@ -431,26 +432,17 @@ def buy_levels_filter(levels):
     levels['price']=levels['price'].astype(float)
     print(" - - - Before filter: {}".format(levels['price']))
     ld = []
-    for i in levels.index:
-        if i>0:
-            if levels.iloc[i]['price'] > (levels.iloc[i-1]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
-                ld.append(i)  # Add the row to the list for removal
-    # jump = False
     # for i in levels.index:
     #     if i>0:
-    #         if not jump:
-    #             if levels.iloc[i]['price'] > (levels.iloc[i-1]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
-    #                 ld.append(i)
-    #                 jump = True
-    #             else:
-    #                 jump = False
-    #         else:
-    #             if i > 2:
-    #                 if levels.iloc[i]['price'] > (levels.iloc[i-2]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
-    #                     ld.append(i)
-    #                     jump = True
-    #                 else:
-    #                     jump = False
+    #         if levels.iloc[i]['price'] > (levels.iloc[i-1]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
+    #             ld.append(i)  # Add the row to the list for removal
+    last_valid = 0
+    for i in levels.index:
+        if i>0:
+            if levels.iloc[i]['price'] > (levels.iloc[last_valid]['price'] * (1 - MIN_LEVEL_DISTANCE/100)):
+                ld.append(i)
+            else:
+                last_valid = i
 
     levels.drop(ld, inplace=True)
     print(" - - - After filter: {}".format(levels['price']))
@@ -722,11 +714,11 @@ def get_position_notional():
 def scheduler():
     if get_current_positions().empty and MULTI_TF:
         if not get_dca_orders().empty:
-            if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
-                get_closest_unhit_lvls()
-            else:
-                get_closest_unhit_lvls(['1m','5m','15m'])
-        else:
+            # if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
+            #     get_closest_unhit_lvls()
+            # else:
+                # get_closest_unhit_lvls(['1m','5m','15m'])
+        # else:
             get_closest_unhit_lvls()
     while True:
         if time.localtime().tm_sec % 5 == 0: # Get things done every 5 seconds
@@ -736,14 +728,14 @@ def scheduler():
                 print(e)
 
         if get_current_positions().empty:
-            if time.localtime().tm_sec % 5 == 0 and time.localtime().tm_min % 5 == 0:
+            if time.localtime().tm_min % 5 == 0:
                 if MULTI_TF:
                     if not get_dca_orders().empty:
-                        if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
-                            get_closest_unhit_lvls()
-                        else:
-                            get_closest_unhit_lvls(['1m','5m','15m'])
-                    else:
+                    #     if current_dca_grid_size() < (max_dca_grid_size() * 0.95):
+                    #         get_closest_unhit_lvls()
+                    #     else:
+                    #         get_closest_unhit_lvls(['1m','5m','15m'])
+                    # else:
                         get_closest_unhit_lvls()
                 else:
                     run_buy_dca_grid(get_data())
@@ -765,7 +757,10 @@ def check_tp_routine():
                 round(sz*LVRG,3), round(pos.iloc[0]['unrealizedPnl'],4), pos.iloc[0]['liquidationPrice'])
                 )
     else:
-        print("[{}] - No position. DCA grid size: {}".format(datetime.now().isoformat().replace('T',' '), round(current_dca_grid_size(),4)))
+        dca_grid_size = current_dca_grid_size()
+        print("[{}] - No position. DCA grid size: {}".format(datetime.now().isoformat().replace('T',' '), round(dca_grid_size,4)))
+        if dca_grid_size == 0:
+            get_closest_unhit_lvls()
     return pos
        
 def remove_orders(orders):
