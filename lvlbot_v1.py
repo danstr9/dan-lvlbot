@@ -541,8 +541,15 @@ def get_balance():
         BAL_AVL = exchange.fetch_free_balance()['USDT']
         ACCOUNT_BALANCE = float(exchange.fetchBalance()['info']['assets'][1]['walletBalance'])
     else:
-        ACCOUNT_BALANCE = float(exchange.fetchBalance()['USDT']['total'] + exchange.fetchBalance()['USD']['total'])
-        BAL_AVL = float(exchange.fetch_free_balance()['USDT'] + exchange.fetch_free_balance()['USD'])
+        BALANCES = exchange.fetchBalance()['info']['result']
+        ACCOUNT_BALANCE = 0
+        BAL_AVL = 0
+        for c in range(len(BALANCES)):
+            usdval = float(BALANCES[c]['usdValue'])
+            ACCOUNT_BALANCE += usdval
+            if usdval != 0:
+                usdvalfree = float(BALANCES[c]['free']) * usdval / float(BALANCES[c]['total'])
+                BAL_AVL += usdvalfree
 
     print("Account balance: {} \nAvailable Balance: {}".format(ACCOUNT_BALANCE,BAL_AVL))
     return (BAL_AVL*LVRG, ACCOUNT_BALANCE*LVRG)
