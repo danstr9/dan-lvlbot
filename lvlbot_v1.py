@@ -135,12 +135,12 @@ else: # FTX CONNECTION
     SYMBOL = SHITCOIN.upper()+'-PERP'
     C_SYMBOL = SYMBOL
     exchange = ccxt.ftx({
-    "apiKey": config.FTX_SAV_API_KEY,
-    "secret": config.FTX_SAV_API_SECRET,
+    "apiKey": config.FTX_LVL_API_KEY,
+    "secret": config.FTX_LVL_API_SECRET,
     'enableRateLimit': True,
-    'headers': {'FTX-SUBACCOUNT': config.FTX_SAV_SUBACCOUNT}
+    'headers': {'FTX-SUBACCOUNT': config.FTX_LVL_SUBACCOUNT}
     })
-    client = FtxClient(api_key=config.FTX_SAV_API_KEY, api_secret=config.FTX_SAV_API_SECRET)
+    client = FtxClient(api_key=config.FTX_LVL_API_KEY, api_secret=config.FTX_LVL_API_SECRET)
     print("Exchange: FTX - {}".format(TF))
     
 print("SYMBOL: {}".format(SYMBOL))    
@@ -512,12 +512,12 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
         # print("buy_levels: \n{}".format(buy_levels))
         # print("sell_levels: \n{}".format(sell_levels))   
         if not buy_levels.empty:
-            print("---- Closest {} BUY: {}".format(tf, list(buy_levels.iloc[0:LEVELS_PER_TF]['price'])))
+            print("---- Closest {} {} BUY: {}".format(SYMBOL, tf, list(buy_levels.iloc[0:LEVELS_PER_TF]['price'])))
             buy_lvdf = buy_lvdf.append(buy_levels.iloc[0:LEVELS_PER_TF], ignore_index=True)
             buy_lvdf['price'] = buy_lvdf['price'].astype(float)
             buy_lvdf.sort_values(by='price', ascending=False, inplace=True)
         if not sell_levels.empty:
-            print("---- Closest {} SELL: {}".format(tf, list(sell_levels.iloc[0:LEVELS_PER_TF]['price'])))
+            print("---- Closest {} {} SELL: {}".format(SYMBOL, tf, list(sell_levels.iloc[0:LEVELS_PER_TF]['price'])))
             sell_lvdf = sell_lvdf.append(sell_levels.iloc[0:LEVELS_PER_TF], ignore_index=True)
             sell_lvdf['price'] = sell_lvdf['price'].astype(float)
             sell_lvdf.sort_values(by='price', ascending=True)
@@ -530,10 +530,10 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
     buy_lvdf = buy_levels_filter(buy_lvdf)
     sell_lvdf = sell_levels_filter(sell_lvdf)
     if TRADE_ON:
-        print("Final Results: \n *** BUY LEVELS *** \n{}".format(buy_lvdf))
+        print("Final Results: \n *** {} BUY LEVELS *** \n{}".format(SYMBOL, buy_lvdf))
         run_buy_dca_grid(candles, buy_lvdf.append(sell_lvdf))
     else:
-        print("Final Results: \n *** BUY LEVELS *** \n{} \n *** SELL LEVELS *** \n{}".format(buy_lvdf, sell_lvdf))
+        print("{} Final Results: \n *** BUY LEVELS *** \n{} \n *** SELL LEVELS *** \n{}".format(SYMBOL, buy_lvdf, sell_lvdf))
         plot_data(candles, buy_lvdf.append(sell_lvdf))
 
 def get_balance():
@@ -697,13 +697,13 @@ def get_current_positions(symbol=SYMBOL):
     else:
         try:
             positions = pd.DataFrame(exchange.fetch_positions(symbols=symbol, params={'showAvgPrice': True}))
+            positions = positions[(positions['side']!= 'None') & (positions['symbol'] == symbol)]
+            positions['entryPrice'] = positions['info'].apply(lambda x : x['recentAverageOpenPrice']).astype(float)
         except Exception as e:
             print(e)
             print("Failed to get current positions.")
 
         if not positions.empty:
-            positions = positions[(positions['side']!= 'None') & (positions['symbol'] == symbol)]
-            positions['entryPrice'] = positions['info'].apply(lambda x : x['recentAverageOpenPrice']).astype(float)
             if positions.iloc[0]['contracts'] != 0:
                 return pd.DataFrame(positions[['symbol', 'entryPrice', 'contracts', 'side', 'liquidationPrice', 'unrealizedPnl']])
     return pd.DataFrame()
@@ -758,7 +758,7 @@ def check_tp_routine():
                 )
     else:
         dca_grid_size = current_dca_grid_size()
-        print("[{}] - No position. DCA grid size: {}".format(datetime.now().isoformat().replace('T',' '), round(dca_grid_size,4)))
+        print("[{}] - {} - No position. DCA grid size: {}".format(datetime.now().isoformat().replace('T',' '), SYMBOL, round(dca_grid_size,4)))
         if dca_grid_size == 0:
             get_closest_unhit_lvls()
     return pos
