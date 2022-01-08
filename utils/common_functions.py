@@ -1,8 +1,8 @@
 import pandas as pd
 from source_platform.ftx_exchange import exchange, client
 import vars
-import time
 from datetime import *
+import time
 import numpy as np
 import utils.ftx_functions as ftx_functions
 
@@ -62,6 +62,9 @@ def get_ftx_tf_num_calc(tf=vars.TF, daysback=vars.DAYS_BACK):
         numcandles = int(daysback * 24 * 60 / tfnum)
     elif 'h' in tf:
         tfnum = int(tf.split('h')[0]) * 60
+        numcandles = int(daysback * 24 * 60 / tfnum)
+    elif 'd' in tf:
+        tfnum = int(tf.split('d')[0]) * 60 * 24
         numcandles = int(daysback * 24 * 60 / tfnum)
 
     return tfnum, numcandles
@@ -146,6 +149,7 @@ def get_closest_unhit_lvls(pair, dca_orders, tflist=vars.TF_LIST):
         levels = get_levels(candles, num)
 
         unhit_levels = levels[levels['hit'] == False]
+        # unhit_levels = levels
         unhit_levels = unhit_levels.drop(['time'], axis=1)
 
         # print(levels)
@@ -154,24 +158,44 @@ def get_closest_unhit_lvls(pair, dca_orders, tflist=vars.TF_LIST):
         sell_levels = unhit_levels[unhit_levels['side'] == 'sell'].sort_values(by='price', ascending=True)
         # print("buy_levels: \n{}".format(buy_levels))
         # print("sell_levels: \n{}".format(sell_levels))
+
+        buy_levels = buy_levels_filter(buy_levels)
+        sell_levels = sell_levels_filter(sell_levels)
+
         if not buy_levels.empty:
             print("---- Closest {} {} BUY: {}".format(pair, tf, list(buy_levels.iloc[0:vars.LEVELS_PER_TF]['price'])))
-            buy_lvdf = buy_lvdf.append(buy_levels.iloc[0:vars.LEVELS_PER_TF], ignore_index=True)
+
+            if len(buy_lvdf):
+                if len(buy_lvdf) < vars.MAX_DCA_NUMBER:
+                    dca_remaining = vars.MAX_DCA_NUMBER - len(buy_lvdf)
+                    dca_to_add = dca_remaining if dca_remaining < vars.LEVELS_PER_TF else vars.LEVELS_PER_TF
+                    buy_lvdf = buy_lvdf.append(buy_levels.loc[buy_levels['price'] < buy_lvdf['price'].iloc[-1] * ((100 - vars.MIN_LEVEL_DISTANCE) / 100)][0:dca_to_add], ignore_index=True)
+            else:
+                buy_lvdf = buy_lvdf.append(buy_levels.iloc[0:vars.LEVELS_PER_TF], ignore_index=True)
+
+            # buy_lvdf = buy_lvdf.append(buy_levels, ignore_index=True)
             buy_lvdf['price'] = buy_lvdf['price'].astype(float)
             buy_lvdf.sort_values(by='price', ascending=False, inplace=True)
+            buy_lvdf = buy_lvdf.drop_duplicates()
+
         if not sell_levels.empty:
             print("---- Closest {} {} SELL: {}".format(pair, tf, list(sell_levels.iloc[0:vars.LEVELS_PER_TF]['price'])))
             sell_lvdf = sell_lvdf.append(sell_levels.iloc[0:vars.LEVELS_PER_TF], ignore_index=True)
+            # sell_lvdf = sell_lvdf.append(sell_levels, ignore_index=True)
             sell_lvdf['price'] = sell_lvdf['price'].astype(float)
             sell_lvdf.sort_values(by='price', ascending=True)
-        print("-" * 80)
+            sell_lvdf = sell_lvdf.drop_duplicates()
+
+        # print("-" * 80)
         # print("levels tail: \n{}\nlevels head: {}".format(levels.tail(1), levels.head(1)))
         # print("candles tail: \n{}\ncandles head: {}".format(candles.tail(1), candles.head(1)))
-        buy_lvdf = buy_lvdf.drop_duplicates()
-        sell_lvdf = sell_lvdf.drop_duplicates()
 
-    buy_lvdf = buy_levels_filter(buy_lvdf)
-    sell_lvdf = sell_levels_filter(sell_lvdf)
+    # buy_lvdf = buy_levels_filter(buy_lvdf)
+    # sell_lvdf = sell_levels_filter(sell_lvdf)
+    #
+    # buy_lvdf = buy_lvdf.iloc[0:vars.MAX_DCA_NUMBER]
+
+
     if vars.TRADE_ON:
         print("Final Results: \n *** {} BUY LEVELS *** \n{}".format(pair, buy_lvdf))
         run_buy_dca_grid(pair, dca_orders, candles, buy_lvdf.append(sell_lvdf))
@@ -294,6 +318,9 @@ def get_levels(candles, n):
     for i in range(n):
         if i > 5 and i < n:
             level_found = level_finder(candles.iloc[i - 5:i])
+            # if datetime.strptime(candles.loc[i]['Date'].split('T')[0], '%Y-%m-%d') > datetime(2021, 11, 27):
+            #     1==1
+            #     pass
             if level_found != 0:
                 levels = levels.append(pd.Series(data=level_found, index=vars.LEVEL_COLUMNS), ignore_index=True)
     print("Done.")
@@ -365,7 +392,8 @@ def check_level_hits(levels, candles):
         valid_candles.reset_index(inplace=True, drop=True)
         if levels.iloc[l]['side'] == 'buy':
             for i in valid_candles.index:
-                if i > 3 and valid_candles.iloc[i]['Low'] <= levels.iloc[l]['price']:
+                # if i > 3 and valid_candles.iloc[i]['Low'] <= levels.iloc[l]['price']:
+                if i > 3 and candles.iloc[-1]['Low'] <= levels.iloc[l]['price']:
                     levels.loc[l, 'hit'] = True
                     break
         else:
@@ -431,9 +459,9 @@ def entry_size(pair, levels, long=True):
         elif min_entry_total_size == max_bpc:
             return min_entry_total_size, def_list
         else:
-            def_list.pop()
-            if len(def_list) == 0:
-                print("Not enough balance.")
+            # def_list.pop()
+            # if len(def_list) == 0:
+                print("Not enough balance, required: {}".format(min_entry_total_size))
                 return 0, 0
     return 0, 0
 

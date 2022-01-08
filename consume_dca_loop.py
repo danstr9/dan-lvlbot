@@ -7,10 +7,14 @@ import time
 def main():
     while True:
         for pair in active_pairs:
-            print('consume_dca_loop: checking TP pair: ' + pair)
+            print('consume_dca_loop: checking DCA pair: ' + pair)
 
-            position = get_current_positions(pair)
-            open_orders = get_open_orders(pair)
+            try:
+                position = get_current_positions(pair)
+                open_orders = get_open_orders(pair)
+            except:
+                import pdb;
+                pdb.set_trace()
 
             if position.empty:
                 print('consume_dca_loop: no position, placing dca for pair: ' + pair)
@@ -18,7 +22,7 @@ def main():
             else:
                 print('consume_dca_loop: position already found on pair: ' + pair)
 
-        time.sleep(5)
+        time.sleep(120)
 
 
 if __name__ == "__main__":

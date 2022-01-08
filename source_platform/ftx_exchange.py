@@ -75,6 +75,9 @@ class FtxClient:
                                                             'start_time': start_time,
                                                             'end_time': end_time})
 
+    def get_orderbook(self, market: str, depth: int = None) -> dict:
+        return self._get(f'markets/{market}/orderbook', {'depth': depth})
+
 exchange = ccxt.ftx({
     "apiKey": config.FTX_LVL_API_KEY,
     "secret": config.FTX_LVL_API_SECRET,

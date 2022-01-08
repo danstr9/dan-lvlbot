@@ -1,8 +1,8 @@
 ######################## GLOBAL VARIABLES #########################
 BINANCE = False # Variable to indicate which exchange to use: True for BINANCE, False for FTX
-active_pairs = ['FTM-PERP', 'DOGE-PERP', 'DOT-PERP']
+active_pairs = ['MATIC-PERP', 'UNI-PERP']
 MULTI_TF = True
-TF_LIST = ['4h', '1h', '15m', '5m', '1m']
+TF_LIST = ['5m', '15m', '1h', '4h']
 TF = '1h'
 LEVELS_PER_TF = 3 # Number of levels per Time Frame to include in the list of DCAs
 DAYS_BACK = 90 # Number of days to look back in time for initial candles data
@@ -10,7 +10,7 @@ TRADE_ON = True
 ###################################################################
 
 # Balance variables
-MAX_BAL_PER_COIN = 10 # Maximum percentage of balance to use per asset/coin
+MAX_BAL_PER_COIN = 25 # Maximum percentage of balance to use per asset/coin
 LVRG = 20
 
 # Take Profit variables
@@ -19,7 +19,8 @@ TPGRID_MAX_DIST = 0.8  # Percentage to use for the farthest order in the TP grid
 TP_ORDERS_NUMBER = 6 # Number of orders for the TP grid
 DCA_FACTOR_MULT = 1.75 # Factor to multiply each DCA entry in the grid (it will multiply the amount of previous DCA by this factor)
 ASSYMMETRIC_TP = False # False for equal sized orders, False for descending size TP orders 
-MIN_LEVEL_DISTANCE = 0.8 # Variable to indicate what % will be the minimum valid distance between levels found
+MIN_LEVEL_DISTANCE = 1.2 # Variable to indicate what % will be the minimum valid distance between levels found
+MAX_DCA_NUMBER = 9
 
 LEVEL_COLUMNS = ['side', 'price', 'hit', 'time']
 
