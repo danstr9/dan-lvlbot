@@ -13,10 +13,9 @@ def main():
                 position = get_current_positions(pair)
                 open_orders = get_open_orders(pair)
             except:
-                import pdb;
-                pdb.set_trace()
+                pass
 
-            if position.empty:
+            if position and position.empty:
                 print('consume_dca_loop: no position, placing dca for pair: ' + pair)
                 check_dca_orders(pair, open_orders)
             else:

@@ -12,10 +12,10 @@ def main():
                 position = get_current_positions(pair)
                 open_orders = get_open_orders(pair)
             except:
-                import pdb; pdb.set_trace()
+                pass
 
 
-            if not position.empty:
+            if position and not position.empty:
                 check_tp_grid(pair, position, open_orders)
             else:
                 print('consume_tp_loop: No position for pair: ' + pair)
