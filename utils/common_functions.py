@@ -415,7 +415,12 @@ def run_buy_dca_grid(pair, dca_orders, candles, unhit_levels=pd.DataFrame):
     else:
         entry, dca_list = entry_size(pair, unhit_levels, long=True)
 
-    if dca_list:
+    try:
+        position = ftx_functions.get_current_positions(pair)
+    except:
+        pass
+
+    if 'position' in locals() and position.empty and dca_list:
         if dca_orders:
             ftx_functions.remove_orders(dca_orders)
 
