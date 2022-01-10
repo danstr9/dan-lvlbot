@@ -15,7 +15,7 @@ def main():
                 pass
 
 
-            if position and not position.empty:
+            if 'position' in locals() and 'open_orders' in locals() and not position.empty:
                 check_tp_grid(pair, position, open_orders)
             else:
                 print('consume_tp_loop: No position for pair: ' + pair)

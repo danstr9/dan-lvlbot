@@ -15,7 +15,7 @@ def main():
             except:
                 pass
 
-            if position and position.empty:
+            if 'position' in locals() and 'open_orders' in locals() and position.empty:
                 print('consume_dca_loop: no position, placing dca for pair: ' + pair)
                 check_dca_orders(pair, open_orders)
             else:
