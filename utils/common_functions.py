@@ -441,7 +441,7 @@ def dca_entries(entry, levels):
 
 def entry_size(pair, levels, long=True):
     avl_bal, acc_bal = ftx_functions.get_balance()
-    max_bpc = avl_bal * vars.MAX_BAL_PER_COIN / 100
+    max_bpc = acc_bal * vars.MAX_BAL_PER_COIN / 100
     MIN_AMOUNT = calculate_min_amount(pair)
 
     print("Max allocation per asset: {}".format(max_bpc))
