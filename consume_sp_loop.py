@@ -36,7 +36,7 @@ def main():
             else:
                 print('consume_tp_loop: No position for pair: ' + pair)
 
-        time.sleep(15)
+        time.sleep(10)
 
 
 if __name__ == "__main__":
