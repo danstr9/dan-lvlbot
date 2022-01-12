@@ -490,8 +490,10 @@ def find_max_possible_entry(min_amount, bal, factor, price_list):
     max_entry = 0
     sum_positions = 0
     while sum_positions < bal:
-        max_entry = max_entry + min_amount
         sum_positions = calc_max_position(max_entry, factor, price_list)
+        if sum_positions < bal:
+            max_entry = max_entry + min_amount
+
     return max_entry
 
 
