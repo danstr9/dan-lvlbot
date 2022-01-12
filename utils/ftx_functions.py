@@ -44,6 +44,7 @@ def get_current_positions(symbol):
         positions = pd.DataFrame(exchange.fetch_positions(symbols=symbol, params={'showAvgPrice': True}))
         positions = positions[(positions['side'] != 'None') & (positions['symbol'] == symbol)]
         positions['entryPrice'] = positions['info'].apply(lambda x: x['recentAverageOpenPrice']).astype(float)
+
     except Exception as e:
         print(e)
         print("Failed to get current positions.")
@@ -51,7 +52,7 @@ def get_current_positions(symbol):
     if not positions.empty:
         if positions.iloc[0]['contracts'] != 0:
             return pd.DataFrame(
-                positions[['symbol', 'entryPrice', 'contracts', 'side', 'liquidationPrice', 'unrealizedPnl']])
+                positions[['symbol', 'entryPrice', 'contracts', 'side', 'liquidationPrice', 'unrealizedPnl', 'notional']])
     return pd.DataFrame()
 
 
@@ -89,6 +90,20 @@ def get_open_orders(pair):
 
 
 def check_tp_grid(pair, position, open_orders):
+    tp_orders = [x for x in open_orders if x['info']['reduceOnly']]
+
+    # if there is an open position but the amount is no fully covoer by tp_grid we remove
+    # all tp_orders and replace them
+    if not position.empty and not position_covered(position, tp_orders):
+        remove_orders(tp_orders)
+        place_tp_orders(pair, position)
+    else:
+        print("TP orders match position. Nothing to do.")
+
+    return tp_orders
+
+
+def check_sp(pair, position, open_orders):
     tp_orders = [x for x in open_orders if x['info']['reduceOnly']]
 
     # if there is an open position but the amount is no fully covoer by tp_grid we remove

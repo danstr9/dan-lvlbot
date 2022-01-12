@@ -1,6 +1,6 @@
 ######################## GLOBAL VARIABLES #########################
 BINANCE = False # Variable to indicate which exchange to use: True for BINANCE, False for FTX
-active_pairs = ['MATIC-PERP', 'UNI-PERP']
+active_pairs = ['ATOM-PERP']
 MULTI_TF = True
 TF_LIST = ['5m', '15m', '1h', '4h']
 TF = '1h'
@@ -14,14 +14,15 @@ MAX_BAL_PER_COIN = 25 # Maximum percentage of balance to use per asset/coin
 LVRG = 20
 
 # Take Profit variables
-TPGRID_MIN_DIST = 0.2 # Percentage to use for the closest order in the TP grid
-TPGRID_MAX_DIST = 0.8  # Percentage to use for the farthest order in the TP grid
+TPGRID_MIN_DIST = 1 # Percentage to use for the closest order in the TP grid
+TPGRID_MAX_DIST = 4  # Percentage to use for the farthest order in the TP grid
 TP_ORDERS_NUMBER = 6 # Number of orders for the TP grid
 DCA_FACTOR_MULT = 1.75 # Factor to multiply each DCA entry in the grid (it will multiply the amount of previous DCA by this factor)
 ASSYMMETRIC_TP = False # False for equal sized orders, False for descending size TP orders 
 MIN_LEVEL_DISTANCE = 1.2 # Variable to indicate what % will be the minimum valid distance between levels found
 MAX_DCA_NUMBER = 9
-
+SP_TRIGGER_LIST = [1.5, 2.5, 3.2]
+SP_MINIMUM_LIST = [0.8, 1.5, 2.5]
 LEVEL_COLUMNS = ['side', 'price', 'hit', 'time']
 
 # Candles calculation
