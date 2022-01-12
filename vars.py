@@ -1,6 +1,6 @@
 ######################## GLOBAL VARIABLES #########################
 BINANCE = False  # Variable to indicate which exchange to use: True for BINANCE, False for FTX
-active_pairs = ['FTT-PERP', 'UNI-PERP']
+active_pairs = ['FTM-PERP', 'UNI-PERP']
 MULTI_TF = True
 TF_LIST = ['5m', '15m', '1h', '4h']
 TF = '1h'
