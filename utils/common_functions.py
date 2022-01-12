@@ -18,7 +18,7 @@ def place_tp_orders(pair, position):
 
     tp_number = vars.TP_ORDERS_NUMBER
     for n in range(vars.TP_ORDERS_NUMBER, 0, -1):
-        if (init_size / n) >= calculate_min_amount(pair):
+        if round((init_size / n), 10) >= calculate_min_amount(pair):
             tp_number = n
             break
 
@@ -27,9 +27,9 @@ def place_tp_orders(pair, position):
             # if vars.ASSYMMETRIC_TP:
             #     tp_size = float(exchange.amount_to_precision(pair, tp_size / 2))
             # else:
-            tp_size = float(exchange.amount_to_precision(pair, init_size / tp_number))
+            tp_size = float(exchange.amount_to_precision(pair, round((init_size / tp_number), 10)))
         else:
-            tp_size = float(exchange.amount_to_precision(pair, init_size - sum_tps))
+            tp_size = float(exchange.amount_to_precision(pair, round((init_size - sum_tps), 2)))
         sum_tps += tp_size
 
         params = {'positionSide': position.iloc[0]['side'].upper(), 'reduceOnly': True}
