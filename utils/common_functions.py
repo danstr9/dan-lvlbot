@@ -487,14 +487,16 @@ def find_max_possible_entry(min_amount, bal, factor, price_list):
     Function to find the maximum possible entry, by testing from the minimum entry size, increasing it sequentially
     until it gets to the value that fits within the maximum allowed balance per asset.
     '''
+    entry = 0
     max_entry = 0
     sum_positions = 0
     while sum_positions < bal:
         sum_positions = calc_max_position(max_entry, factor, price_list)
         if sum_positions < bal:
+            entry = max_entry
             max_entry = max_entry + min_amount
 
-    return max_entry
+    return entry
 
 
 def calc_max_position(entry, factor, price_list):
