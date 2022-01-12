@@ -29,7 +29,7 @@ def place_tp_orders(pair, position):
             # else:
             tp_size = float(exchange.amount_to_precision(pair, round((init_size / tp_number), 10)))
         else:
-            tp_size = float(exchange.amount_to_precision(pair, round((init_size - sum_tps), 2)))
+            tp_size = float(exchange.amount_to_precision(pair, round((init_size - sum_tps), 10)))
         sum_tps += tp_size
 
         params = {'positionSide': position.iloc[0]['side'].upper(), 'reduceOnly': True}
