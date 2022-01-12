@@ -79,7 +79,7 @@ def position_covered(position, tp_orders):
 
     if tp_orders:
         cur_pos = float(pos.iloc[0]['contracts'])
-        cur_tp_size = sum([x['remaining'] for x in tp_orders])
+        cur_tp_size = round(sum([x['remaining'] for x in tp_orders]), 10)
         return cur_pos == cur_tp_size
     else:
         return False
