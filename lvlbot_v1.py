@@ -547,7 +547,7 @@ def get_balance():
         for c in range(len(BALANCES)):
             usdval = float(BALANCES[c]['usdValue'])
             ACCOUNT_BALANCE += usdval
-            if usdval != 0:
+            if usdval > 0.01:
                 usdvalfree = float(BALANCES[c]['free']) * usdval / float(BALANCES[c]['total'])
                 BAL_AVL += usdvalfree
 
@@ -578,12 +578,16 @@ def find_max_possible_entry(bal, factor, price_list):
     until it gets to the value that fits within the maximum allowed balance per asset.
     '''
     MIN_AMOUNT = calculate_min_amount()
+    entry = 0
     max_entry = 0
     sum_positions = 0
     while sum_positions < bal:
-        max_entry = max_entry + MIN_AMOUNT
         sum_positions = calc_max_position(max_entry, factor, price_list)
-    return max_entry
+        if sum_positions < bal:
+            entry = max_entry
+            max_entry = max_entry + MIN_AMOUNT
+
+    return entry
     
 def calc_max_position(entry, factor, price_list):
     pos = 0
@@ -596,7 +600,7 @@ def calc_max_position(entry, factor, price_list):
 
 def entry_size(levels, long=True):
     avl_bal, acc_bal = get_balance()
-    max_bpc = avl_bal * MAX_BAL_PER_COIN / 100
+    max_bpc = acc_bal * MAX_BAL_PER_COIN / 100
     MIN_AMOUNT = calculate_min_amount()
     print("Max allocation per asset: {}".format(max_bpc))
     print("Minimum entry size: {}".format(MIN_AMOUNT))
@@ -887,14 +891,20 @@ def add_tp_grid(pos = get_current_positions(SYMBOL)):
     tp_orders = []
     print("init size: {}; tp_size: {}, tp_dist: {}".format(next_tp_pos, tp_size, tp_dist))
 
-    for n in range(TP_ORDERS):
-        if n < (TP_ORDERS-1):
+    tp_number = TP_ORDERS
+    for n in range(TP_ORDERS, 0, -1):
+        if round((init_size / n), 10) >= calculate_min_amount(C_SYMBOL):
+            tp_number = n
+            break
+
+    for n in range(tp_number):
+        if n < (tp_number-1):
             if ASSYMMETRIC_TP:        
                 tp_size = float(exchange.amount_to_precision(C_SYMBOL, tp_size/2))   
             else:
-                tp_size = float(exchange.amount_to_precision(C_SYMBOL, init_size / TP_ORDERS))
+                tp_size = float(exchange.amount_to_precision(C_SYMBOL, round((init_size / tp_number), 10)))
         else:
-            tp_size = float(exchange.amount_to_precision(C_SYMBOL, init_size )) # - sum_tps))
+            tp_size = float(exchange.amount_to_precision(C_SYMBOL, round((init_size - sum_tps), 10)))
         sum_tps += tp_size
 
         if BINANCE:
