@@ -17,7 +17,7 @@ import vars
 import ccxt
 import time
 from binance_data import DataClient
-import animation
+# import animation
 import mplfinance as mplf
 
 # For FtxClient ----------------------------------------
@@ -51,8 +51,8 @@ elif 'h' in TF:
     NUM_CANDLES = int(DAYS_BACK * 24 * 60 / TF_NUM)
 
 # clock animation (white, default speed)
-clock = ['-','\\','|','/']
-wait_animation = animation.Wait(clock, speed=8)
+# clock = ['-','\\','|','/']
+# wait_animation = animation.Wait(clock, speed=8)
 
 # Special class with FTX functions to get the candle data.
 class FtxClient:
@@ -239,12 +239,12 @@ def get_binance_candles(client, market, timeframe=TF, daysago=30, candlesago=0, 
         initdate = datetime.utcnow() - timedelta(minutes=minsago)
 
     start_date = initdate.strftime('%m/%d/%Y')
-    wait_animation.start()
+    # wait_animation.start()
     try:
         store_data = client.kline_data([SYMBOL], timeframe, start_date=start_date, end_date=today)
     except Exception as e:
         print(e)
-    wait_animation.stop()
+    # wait_animation.stop()
     # print("Data file: {}".format(data_file))
     return pd.read_csv(data_file).iloc[-numcandles:]  
 
@@ -396,13 +396,13 @@ def get_levels(candles, n):
         n = candles.shape[0]
 
     print('Processing candles...')
-    wait_animation.start()
+    # wait_animation.start()
     for i in range(n):
         if i > 5 and i < n:
             level_found = level_finder(candles.iloc[i-5:i])
             if level_found != 0:
                 levels = levels.append(pd.Series(data=level_found, index=LEVEL_COLUMNS), ignore_index=True)
-    wait_animation.stop()
+    # wait_animation.stop()
     print("Done.")
     return check_level_hits(levels, candles)
 
@@ -538,8 +538,8 @@ def get_closest_unhit_lvls(tflist=TF_LIST):
 
 def get_balance():
     if BINANCE:
-        BAL_AVL = exchange.fetch_free_balance()['USDT']
-        ACCOUNT_BALANCE = float(exchange.fetchBalance()['info']['assets'][1]['walletBalance'])
+        BAL_AVL = round(float((exchange.fetch_balance()['info']['availableBalance'])), 2)
+        ACCOUNT_BALANCE = round(float(exchange.fetchBalance()['info']['totalMarginBalance']), 2)
     else:
         BALANCES = exchange.fetchBalance()['info']['result']
         ACCOUNT_BALANCE = 0
@@ -577,9 +577,10 @@ def find_max_possible_entry(bal, factor, price_list):
     Function to find the maximum possible entry, by testing from the minimum entry size, increasing it sequentially
     until it gets to the value that fits within the maximum allowed balance per asset.
     '''
-    MIN_AMOUNT = calculate_min_amount()
+    global MIN_AMOUNT
+    init_amount= calculate_min_amount()
     entry = 0
-    max_entry = 0
+    max_entry = init_amount
     sum_positions = 0
     while sum_positions < bal:
         sum_positions = calc_max_position(max_entry, factor, price_list)
@@ -601,9 +602,9 @@ def calc_max_position(entry, factor, price_list):
 def entry_size(levels, long=True):
     avl_bal, acc_bal = get_balance()
     max_bpc = acc_bal * MAX_BAL_PER_COIN / 100
-    MIN_AMOUNT = calculate_min_amount()
+    min_amount = calculate_min_amount()
     print("Max allocation per asset: {}".format(max_bpc))
-    print("Minimum entry size: {}".format(MIN_AMOUNT))
+    print("Minimum entry size: {}".format(min_amount))
     
     buy_levels = levels[levels['side'] == 'buy'].sort_values(by='price', ascending=False)
     sell_levels = levels[levels['side'] == 'sell'].sort_values(by='price', ascending=True)
@@ -614,7 +615,7 @@ def entry_size(levels, long=True):
         def_list = list(sell_levels['price'].astype(float))
 
     while len(def_list) > 0:
-        min_entry_total_size = calc_max_position(MIN_AMOUNT, DCA_FACTOR_MULT, def_list)
+        min_entry_total_size = calc_max_position(min_amount, DCA_FACTOR_MULT, def_list)
         
         if min_entry_total_size < max_bpc: # Check if we cover the whole available balance with the minimum entry size
             entry = find_max_possible_entry(max_bpc, DCA_FACTOR_MULT, def_list)
@@ -893,7 +894,7 @@ def add_tp_grid(pos = get_current_positions(SYMBOL)):
 
     tp_number = TP_ORDERS
     for n in range(TP_ORDERS, 0, -1):
-        if round((init_size / n), 10) >= calculate_min_amount(C_SYMBOL):
+        if round((init_size / n), 4) >= MIN_AMOUNT:
             tp_number = n
             break
 
