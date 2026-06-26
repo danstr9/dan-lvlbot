@@ -43,7 +43,7 @@ six==1.16.0
 typing_extensions==4.0.1
 tzdata==2021.5
 tzlocal==4.1
-ujson==5.12.1
+ujson==5.13.0
 urllib3==2.7.0
 websocket==0.2.1
 websockets==9.1
